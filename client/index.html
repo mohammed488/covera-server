@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Covera - Digital Car Insurance Platform</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="logo">C</div>
+      <div>
+        <div class="brand-title">Covera</div>
+        <div class="brand-sub">Smart Web-Based Digital Car Insurance Platform (Fullstack + Supabase DB)</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <a href="#/">Home</a>
+      <a href="#/insurance">Insurance</a>
+      <a href="#/laws">Laws</a>
+      <a href="#/faq">FAQ</a>
+      <a href="#/submit" data-auth="true">Submit Request</a>
+      <a href="#/my-requests" data-auth="true">My Requests</a>
+      <a href="#/chatbot">Chatbot</a>
+      <a href="#/admin" data-admin="true">Admin</a>
+      <span class="nav-spacer"></span>
+      <a href="#/login" id="loginLink">Login</a>
+      <button class="btn btn-ghost" id="logoutBtn" style="display:none;">Logout</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="app"></div>
+  </main>
+
+  <footer class="footer">
+    <div>© <span id="year"></span> Covera • Fullstack demo</div>
+  </footer>
+</body>
+</html>
