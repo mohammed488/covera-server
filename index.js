@@ -232,5 +232,43 @@ app.get("/api/admin/licenses", requireAdmin, async (req, res) => {
     return bad(res, 500, "ADMIN_LICENSES_ERROR");
   }
 });
+
+
+// ===== Contact Messages API =====
+app.post("/api/contact", async (req, res) => {
+  const { name, phone, email, subject, message } = req.body || {};
+
+  if (!name || !phone || !email || !subject || !message) {
+    return bad(res, 400, "MISSING_CONTACT_FIELDS");
+  }
+
+  try {
+    const q = `
+      INSERT INTO contact_messages (name, phone, email, subject, message)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    const r = await pool.query(q, [name, phone, email, subject, message]);
+    ok(res, r.rows[0]);
+  } catch (e) {
+    console.error("CONTACT_SAVE_ERROR:", e);
+    return bad(res, 500, "CONTACT_SAVE_ERROR");
+  }
+});
+
+app.get("/api/admin/contact", requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT *
+      FROM contact_messages
+      ORDER BY created_at DESC
+    `);
+    ok(res, r.rows);
+  } catch (e) {
+    console.error("CONTACT_LOAD_ERROR:", e);
+    return bad(res, 500, "CONTACT_LOAD_ERROR");
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=> console.log(`API running on http://localhost:${PORT}`));
