@@ -1,44 +1,78 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Covera - Digital Car Insurance Platform</title>
-  <link rel="stylesheet" href="./styles.css" />
-  <script defer src="./app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Covera | الرئيسية</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <header class="header">
-    <div class="brand">
-      <div class="logo">C</div>
-      <div>
-        <div class="brand-title">Covera</div>
-        <div class="brand-sub">Smart Web-Based Digital Car Insurance Platform (Fullstack + Supabase DB)</div>
-      </div>
-    </div>
-
-    <nav class="nav" id="nav">
-      <a href="#/">Home</a>
-      <a href="#/insurance">Insurance</a>
-      <a href="#/laws">Laws</a>
-      <a href="#/faq">FAQ</a>
-      <a href="#/submit" data-auth="true">Submit Request</a>
-      <a href="#/my-requests" data-auth="true">My Requests</a>
-      <a href="#/chatbot">Chatbot</a>
-      <a href="#/admin" data-admin="true">Admin</a>
-      <span class="nav-spacer"></span>
-      <a href="#/login" id="loginLink">Login</a>
-      <button class="btn btn-ghost" id="logoutBtn" style="display:none;">Logout</button>
-    </nav>
-  </header>
+<body data-page="home">
+  <div id="header-placeholder"></div>
 
   <main class="container">
-    <div id="toast" class="toast" aria-live="polite"></div>
-    <div id="app"></div>
+    <section class="hero hero-home">
+      <div class="hero-card hero-card-logo">
+        <img src="assets/covera-logo.png" alt="شعار Covera" class="hero-logo-image" />
+
+        <div class="hero-bottom-actions">
+          <button class="hero-mini-btn" id="showCoverageBtn" type="button">✅ حماية شاملة</button>
+          <button class="hero-mini-btn" id="goContactBtn" type="button">📞 دعم مباشر</button>
+          <button class="hero-mini-btn" id="goQuickRequestBtn" type="button">⚡ طلب سريع</button>
+        </div>
+      </div>
+
+      <div class="hero-text hero-text-home">
+        <h1>منصة Covera الذكية<br>لتأمين المركبات</h1>
+        <p id="welcomeMessage">موقع حديث وسريع يساعدك على التعرف على أنواع التأمين، طلب عرض سعر، والتواصل مع فريق الدعم بشكل واضح ومرتب.</p>
+
+        <div class="hero-actions hero-actions-home">
+          <button class="btn btn-primary" id="goQuote">احصل على عرض سعر</button>
+          <button class="btn btn-outline" id="goServices">تعرّف على الخدمات</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="why-covera-section">
+      <div class="why-covera-head">
+        <h2>ليش تختار <span>Covera</span>؟</h2>
+        <p>واجهة واضحة، تصميم نظيف، وربط سهل بين صفحات التأمين وطلب العرض والتواصل.</p>
+      </div>
+    </section>
+
+    <section class="section-sm">
+      <div class="grid grid-3">
+        <div class="info-card">
+          <h3>واجهة احترافية</h3>
+          <p>تصميم واضح ومتناسق يحافظ على نفس هوية Covera في جميع الصفحات.</p>
+        </div>
+        <div class="info-card">
+          <h3>خدمة سريعة</h3>
+          <p>الوصول إلى الخدمات وطلب عرض السعر والتواصل يتم بخطوات قليلة وواضحة.</p>
+        </div>
+        <div class="info-card">
+          <h3>ربط كامل</h3>
+          <p>النظام مربوط مع الواجهة الخلفية لتسجيل الدخول وإرسال الطلبات وعرضها للأدمن.</p>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <footer class="footer">
-    <div>© <span id="year"></span> Covera • Fullstack demo</div>
-  </footer>
+  <div class="modal hidden" id="coverageModal">
+    <div class="modal-card">
+      <button class="modal-close" id="closeCoverageModal" type="button">×</button>
+      <h2>معلومات التأمين الشامل</h2>
+      <p>التأمين الشامل مناسب لمن يريد تغطية أوسع على المركبة، ويشمل عادة:</p>
+      <ul class="modal-list">
+        <li>تغطية الحوادث والاصطدامات</li>
+        <li>تغطية السرقة والحريق</li>
+        <li>تغطية أضرار الطرف الثالث</li>
+        <li>خدمة مساعدة ودعم حسب الوثيقة</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+  <div id="toast" class="toast"></div>
+  <script src="main.js"></script>
 </body>
 </html>
