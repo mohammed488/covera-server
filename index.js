@@ -166,5 +166,71 @@ app.patch("/api/admin/requests/:id/status", requireAdmin, async (req,res)=>{
   ok(res, r.rows[0]);
 });
 
+
+// ===== License Reminder API =====
+app.post("/api/license", async (req, res) => {
+  const { user_id, blood_type, license_degree, expiry_date } = req.body || {};
+
+  if (!user_id || !blood_type || !license_degree || !expiry_date) {
+    return bad(res, 400, "MISSING_LICENSE_FIELDS");
+  }
+
+  try {
+    const q = `
+      INSERT INTO license_info (user_id, blood_type, license_degree, expiry_date, updated_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        blood_type = EXCLUDED.blood_type,
+        license_degree = EXCLUDED.license_degree,
+        expiry_date = EXCLUDED.expiry_date,
+        updated_at = NOW()
+      RETURNING *, (expiry_date - CURRENT_DATE) AS days_left
+    `;
+    const r = await pool.query(q, [Number(user_id), blood_type, license_degree, expiry_date]);
+    ok(res, r.rows[0]);
+  } catch (e) {
+    console.error("LICENSE_SAVE_ERROR:", e);
+    return bad(res, 500, "LICENSE_SAVE_ERROR");
+  }
+});
+
+app.get("/api/license/:userId", async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (!userId) return bad(res, 400, "BAD_USER_ID");
+
+  try {
+    const q = `
+      SELECT li.*, u.name AS user_name, u.email AS user_email,
+             (li.expiry_date - CURRENT_DATE) AS days_left
+      FROM license_info li
+      JOIN users u ON u.id = li.user_id
+      WHERE li.user_id = $1
+      LIMIT 1
+    `;
+    const r = await pool.query(q, [userId]);
+    ok(res, r.rows[0] || null);
+  } catch (e) {
+    console.error("LICENSE_LOAD_ERROR:", e);
+    return bad(res, 500, "LICENSE_LOAD_ERROR");
+  }
+});
+
+app.get("/api/admin/licenses", requireAdmin, async (req, res) => {
+  try {
+    const q = `
+      SELECT li.*, u.name AS user_name, u.email AS user_email,
+             (li.expiry_date - CURRENT_DATE) AS days_left
+      FROM license_info li
+      JOIN users u ON u.id = li.user_id
+      ORDER BY li.expiry_date ASC
+    `;
+    const r = await pool.query(q);
+    ok(res, r.rows);
+  } catch (e) {
+    console.error("ADMIN_LICENSES_ERROR:", e);
+    return bad(res, 500, "ADMIN_LICENSES_ERROR");
+  }
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=> console.log(`API running on http://localhost:${PORT}`));
