@@ -113,22 +113,48 @@ app.post("/api/requests", async (req,res)=>{
   if (!isValidCountryCode(countryCode)) return bad(res, 400, "INVALID_COUNTRY_CODE");
   if (!isValidLocalPhone(localPhone)) return bad(res, 400, "INVALID_PHONE_NUMBER");
 
-  const q = `
-    INSERT INTO requests (user_id, insurance_id, full_name, phone, country_code, car_model, car_year, notes, status)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'PENDING')
-    RETURNING *
-  `;
-  const r = await pool.query(q, [
-    Number(user_id),
-    insurance_id ? Number(insurance_id) : null,
-    full_name,
-    localPhone,
-    countryCode,
-    car_model,
-    Number(car_year),
-    notes || null
-  ]);
-  ok(res, r.rows[0]);
+  const insuranceId = insurance_id ? Number(insurance_id) : null;
+  const carYearNumber = Number(car_year);
+
+  try {
+    const duplicateCheck = await pool.query(
+      `SELECT id
+       FROM requests
+       WHERE user_id=$1
+         AND insurance_id IS NOT DISTINCT FROM $2
+         AND LOWER(TRIM(full_name)) = LOWER(TRIM($3))
+         AND phone=$4
+         AND country_code=$5
+         AND LOWER(TRIM(car_model)) = LOWER(TRIM($6))
+         AND car_year=$7
+       LIMIT 1`,
+      [Number(user_id), insuranceId, full_name, localPhone, countryCode, car_model, carYearNumber]
+    );
+
+    if (duplicateCheck.rows.length) {
+      return bad(res, 409, "DUPLICATE_REQUEST_SAME_DATA");
+    }
+
+    const q = `
+      INSERT INTO requests (user_id, insurance_id, full_name, phone, country_code, car_model, car_year, notes, status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'PENDING')
+      RETURNING *
+    `;
+    const r = await pool.query(q, [
+      Number(user_id),
+      insuranceId,
+      full_name,
+      localPhone,
+      countryCode,
+      car_model,
+      carYearNumber,
+      notes || null
+    ]);
+    ok(res, r.rows[0]);
+  } catch (e) {
+    console.error("REQUEST_CREATE_ERROR:", e);
+    return bad(res, 500, "REQUEST_CREATE_ERROR");
+  }
 });
 
 app.get("/api/requests/my/:userId", async (req,res)=>{
@@ -222,6 +248,28 @@ app.patch("/api/admin/requests/:id/status", requireAdmin, async (req,res)=>{
   const r = await pool.query(q, [nextStatus, nextStatus === "REJECTED" ? reason : null, id]);
   ok(res, r.rows[0]);
 });
+
+
+app.delete("/api/admin/requests/:id", requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return bad(res, 400, "BAD_REQUEST_ID");
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const r = await client.query("DELETE FROM requests WHERE id=$1 RETURNING id", [id]);
+    await client.query("COMMIT");
+    if (!r.rowCount) return bad(res, 404, "REQUEST_NOT_FOUND");
+    ok(res, { deleted: true, id });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("ADMIN_DELETE_REQUEST_ERROR:", e);
+    return bad(res, 500, "ADMIN_DELETE_REQUEST_ERROR");
+  } finally {
+    client.release();
+  }
+});
+
 
 
 // ===== AI Risk Analyzer API =====
@@ -319,6 +367,55 @@ app.post("/api/ai/risk-analysis", async (req, res) => {
   }
 
   try {
+    const userId = Number(body.user_id);
+
+    const duplicateResult = await pool.query(
+      `SELECT id FROM ai_risk_analyses
+       WHERE user_id=$1
+         AND driver_age=$2
+         AND driving_years=$3
+         AND accidents_count=$4
+         AND traffic_violations=$5
+         AND vehicle_type=$6
+         AND car_year=$7
+         AND vehicle_value=$8
+         AND usage_type=$9
+         AND city_level=$10
+         AND parking_type=$11
+         AND annual_km=$12
+       LIMIT 1`,
+      [
+        userId,
+        Number(body.driver_age),
+        Number(body.driving_years),
+        Number(body.accidents_count || 0),
+        Number(body.traffic_violations || 0),
+        String(body.vehicle_type),
+        Number(body.car_year),
+        Number(body.vehicle_value),
+        String(body.usage_type || "personal"),
+        String(body.city_level || "medium"),
+        String(body.parking_type || "street"),
+        Number(body.annual_km || 0)
+      ]
+    );
+
+    if (duplicateResult.rows.length) {
+      return bad(res, 409, "DUPLICATE_RISK_ANALYSIS");
+    }
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM ai_risk_analyses
+       WHERE user_id=$1
+         AND created_at >= (NOW() - INTERVAL '1 year')`,
+      [userId]
+    );
+
+    if (Number(countResult.rows[0]?.total || 0) >= 2) {
+      return bad(res, 409, "RISK_ANALYSIS_YEARLY_LIMIT_REACHED");
+    }
+
     const result = calculateRiskAnalysis(body);
     const q = `
       INSERT INTO ai_risk_analyses (
@@ -331,7 +428,7 @@ app.post("/api/ai/risk-analysis", async (req, res) => {
       RETURNING *
     `;
     const values = [
-      Number(body.user_id), Number(body.driver_age), Number(body.driving_years), Number(body.accidents_count || 0),
+      userId, Number(body.driver_age), Number(body.driving_years), Number(body.accidents_count || 0),
       Number(body.traffic_violations || 0), String(body.vehicle_type), Number(body.car_year), Number(body.vehicle_value),
       String(body.usage_type || "personal"), String(body.city_level || "medium"), String(body.parking_type || "street"),
       Number(body.annual_km || 0), body.notes || null, result.score, result.riskLevel, result.recommendedInsurance,
