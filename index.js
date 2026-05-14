@@ -18,7 +18,7 @@ function bad(res, code, error){ res.status(code).json({ error }); }
 app.get("/api/health", (req,res)=> ok(res, { ok:true }));
 
 function requireAdmin(req,res,next){
-  const role = (req.headers["x-role"] || "").toString();
+  const role = (req.headers["x-role"] || "").toString().trim().toUpperCase();
   if (role !== "ADMIN") return bad(res, 403, "ADMIN_ONLY");
   next();
 }
@@ -51,12 +51,6 @@ function normalizeRequestStatus(status = "") {
   if (["PENDING", "APPROVED", "REJECTED"].includes(value)) return value;
   if (value === "SUBMITTED") return "PENDING";
   return "PENDING";
-}
-
-function normalizeHandlingStatus(status = "") {
-  const value = String(status).trim().toUpperCase();
-  if (["DONE", "IN_PROGRESS", "NOT_HANDLED"].includes(value)) return value;
-  return "NOT_HANDLED";
 }
 
 app.post("/api/register", async (req,res)=>{
@@ -649,12 +643,11 @@ app.get("/api/admin/incident-chat/messages", requireAdmin, async (req, res) => {
     const r = await pool.query(`
       SELECT
         m.*,
-        u.name AS user_name,
-        u.email AS user_email,
-        COALESCE(s.handling_status, 'NOT_HANDLED') AS handling_status
+        COALESCE(u.name, 'مستخدم') AS user_name,
+        COALESCE(u.email, '-') AS user_email,
+        COALESCE(m.handling_status, 'not_handled') AS handling_status
       FROM incident_chat_messages m
-      JOIN users u ON u.id = m.user_id
-      LEFT JOIN incident_chat_statuses s ON s.user_id = m.user_id
+      LEFT JOIN users u ON u.id = m.user_id
       ORDER BY m.created_at ASC, m.id ASC
     `);
     ok(res, r.rows);
@@ -664,24 +657,20 @@ app.get("/api/admin/incident-chat/messages", requireAdmin, async (req, res) => {
   }
 });
 
-app.put("/api/admin/incident-chat/:userId/status", requireAdmin, async (req, res) => {
+
+app.patch("/api/admin/incident-chat/:userId/status", requireAdmin, async (req, res) => {
   const userId = Number(req.params.userId || 0);
-  const handlingStatus = normalizeHandlingStatus((req.body || {}).handling_status);
-  if (!userId) return bad(res, 400, "MISSING_USER_ID");
+  const status = String((req.body || {}).handling_status || "").trim();
+  const allowed = ["handled", "communicating", "not_handled"];
+  if (!userId || !allowed.includes(status)) return bad(res, 400, "INVALID_HANDLING_STATUS");
 
   try {
-    const userCheck = await pool.query("SELECT id FROM users WHERE id=$1", [userId]);
-    if (!userCheck.rows.length) return bad(res, 404, "USER_NOT_FOUND");
-
-    const r = await pool.query(`
-      INSERT INTO incident_chat_statuses (user_id, handling_status, updated_at)
-      VALUES ($1, $2, NOW())
-      ON CONFLICT (user_id)
-      DO UPDATE SET handling_status = EXCLUDED.handling_status, updated_at = NOW()
-      RETURNING *
-    `, [userId, handlingStatus]);
-
-    ok(res, r.rows[0]);
+    await pool.query(`
+      UPDATE incident_chat_messages
+      SET handling_status=$1
+      WHERE user_id=$2
+    `, [status, userId]);
+    ok(res, { ok: true, user_id: userId, handling_status: status });
   } catch (e) {
     console.error("ADMIN_INCIDENT_STATUS_UPDATE_ERROR:", e);
     return bad(res, 500, "ADMIN_INCIDENT_STATUS_UPDATE_ERROR");
