@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Covera | القوانين</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="laws">
+  <div id="header-placeholder"></div>
+
+  <main class="container">
+    <section class="section">
+      <div class="section-title">
+        <h1>القوانين</h1>
+        <p>صفحة مخصصة لعرض قوانين التأمين والإرشادات المهمة بطريقة واضحة ومنظمة.</p>
+      </div>
+
+      <div class="grid grid-2" id="lawsOptionsGrid">
+        <a class="service-card" href="insurance-laws.html">
+          <div class="service-icon">📘</div>
+          <h3>قوانين التأمين</h3>
+          <p>تعرف على أهم القوانين والمفاهيم المتعلقة بتأمين المركبات في فلسطين.</p>
+          <div class="service-bottom">
+            <span class="price"><span>عرض التفاصيل</span></span>
+          </div>
+        </a>
+
+        <a class="service-card auth-only-law hidden" href="accidents.html">
+          <div class="service-icon">🚨</div>
+          <h3>الحوادث</h3>
+          <p>قوانين الحوادث وتحليل تقديري لتكلفة الإصلاح قبل فتح مطالبة تأمين.</p>
+          <div class="service-bottom">
+            <span class="price"><span>للمستخدمين المسجلين</span></span>
+          </div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <div id="footer-placeholder"></div>
+  <div id="toast" class="toast"></div>
+  <script src="main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const session = JSON.parse(localStorage.getItem("covera_session") || "null");
+      const accidentCard = document.querySelector(".auth-only-law");
+      const grid = document.getElementById("lawsOptionsGrid");
+      if (session && accidentCard) accidentCard.classList.remove("hidden");
+      if (!session && grid) grid.classList.remove("grid-2");
+    });
+  </script>
+</body>
+</html>

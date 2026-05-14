@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Covera | إجراءات الحوادث</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="laws">
+  <div id="header-placeholder"></div>
+
+  <main class="container">
+    <section class="section">
+      <div class="section-title">
+        <h1>إجراءات الحوادث</h1>
+        <p>إرشادات مهمة يجب اتباعها عند وقوع حادث مركبة حتى يتم حفظ الحقوق وتوثيق التفاصيل بشكل صحيح.</p>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card-box">
+          <h3>لا تحرك المركبة</h3>
+          <p>بعد وقوع الحادث، لا تقم بتحريك المركبة من مكانها إلا إذا كان هناك خطر مباشر على السلامة أو طلبت الجهات المختصة ذلك.</p>
+        </div>
+        <div class="card-box">
+          <h3>اتصل بالشرطة</h3>
+          <p>يجب الاتصال بالشرطة لتوثيق الحادث رسميًا، خاصة إذا كان هناك أضرار واضحة أو خلاف بين الأطراف.</p>
+        </div>
+        <div class="card-box">
+          <h3>تواصل مع شركة التأمين</h3>
+          <p>أبلغ شركة التأمين بالحادث بأسرع وقت، وقدم لهم المعلومات الأساسية مثل موقع الحادث ووقت وقوعه وبيانات المركبات.</p>
+        </div>
+        <div class="card-box">
+          <h3>صوّر موقع الحادث</h3>
+          <p>قم بتصوير موقع الحادث، المركبات، الأضرار، الطريق، الإشارات، وأي تفاصيل تساعد في توضيح ما حدث.</p>
+        </div>
+        <div class="card-box">
+          <h3>احفظ رقم المركبة الأخرى</h3>
+          <p>سجل رقم لوحة المركبة التي حصل معها الحادث، وبيانات السائق إن أمكن، خصوصًا في حال حاول الطرف الآخر المغادرة حتى لا يتحمل المسؤولية.</p>
+        </div>
+        <div class="card-box">
+          <h3>لا توقع على شيء غير واضح</h3>
+          <p>لا توقع على أي ورقة أو تعهد قبل فهم محتواه، واحتفظ بنسخة من أي مستند يتعلق بالحادث.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="footer-placeholder"></div>
+  <div id="toast" class="toast"></div>
+  <script src="main.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const session = JSON.parse(localStorage.getItem("covera_session") || "null");
+      if (!session) window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>
