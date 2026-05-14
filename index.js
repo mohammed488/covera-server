@@ -5,7 +5,7 @@ require("dotenv").config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -595,6 +595,83 @@ app.get("/api/admin/contact", requireAdmin, async (req, res) => {
   } catch (e) {
     console.error("CONTACT_LOAD_ERROR:", e);
     return bad(res, 500, "CONTACT_LOAD_ERROR");
+  }
+});
+
+// ===== Incident Live Chat API =====
+app.post("/api/incident-chat/messages", requireUser, async (req, res) => {
+  const { message, image_data, image_name } = req.body || {};
+  const text = String(message || "").trim();
+  const imageData = image_data ? String(image_data) : null;
+  const imageName = image_name ? String(image_name).slice(0, 180) : null;
+
+  if (!text && !imageData) return bad(res, 400, "EMPTY_INCIDENT_MESSAGE");
+  if (imageData && !imageData.startsWith("data:image/")) return bad(res, 400, "INVALID_IMAGE_DATA");
+
+  try {
+    const q = `
+      INSERT INTO incident_chat_messages (user_id, sender_role, message, image_data, image_name)
+      VALUES ($1, 'USER', $2, $3, $4)
+      RETURNING *
+    `;
+    const r = await pool.query(q, [req.userId, text || null, imageData, imageName]);
+    ok(res, r.rows[0]);
+  } catch (e) {
+    console.error("INCIDENT_CHAT_SAVE_ERROR:", e);
+    return bad(res, 500, "INCIDENT_CHAT_SAVE_ERROR");
+  }
+});
+
+app.get("/api/incident-chat/my", requireUser, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT *
+       FROM incident_chat_messages
+       WHERE user_id=$1
+       ORDER BY created_at ASC, id ASC`,
+      [req.userId]
+    );
+    ok(res, r.rows);
+  } catch (e) {
+    console.error("INCIDENT_CHAT_LOAD_ERROR:", e);
+    return bad(res, 500, "INCIDENT_CHAT_LOAD_ERROR");
+  }
+});
+
+app.get("/api/admin/incident-chat/messages", requireAdmin, async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT m.*, u.name AS user_name, u.email AS user_email
+      FROM incident_chat_messages m
+      JOIN users u ON u.id = m.user_id
+      ORDER BY m.created_at ASC, m.id ASC
+    `);
+    ok(res, r.rows);
+  } catch (e) {
+    console.error("ADMIN_INCIDENT_CHAT_LOAD_ERROR:", e);
+    return bad(res, 500, "ADMIN_INCIDENT_CHAT_LOAD_ERROR");
+  }
+});
+
+app.post("/api/admin/incident-chat/:userId/reply", requireAdmin, async (req, res) => {
+  const userId = Number(req.params.userId || 0);
+  const text = String((req.body || {}).message || "").trim();
+  if (!userId || !text) return bad(res, 400, "MISSING_REPLY_FIELDS");
+
+  try {
+    const userCheck = await pool.query("SELECT id FROM users WHERE id=$1", [userId]);
+    if (!userCheck.rows.length) return bad(res, 404, "USER_NOT_FOUND");
+
+    const q = `
+      INSERT INTO incident_chat_messages (user_id, sender_role, message)
+      VALUES ($1, 'ADMIN', $2)
+      RETURNING *
+    `;
+    const r = await pool.query(q, [userId, text]);
+    ok(res, r.rows[0]);
+  } catch (e) {
+    console.error("ADMIN_INCIDENT_REPLY_ERROR:", e);
+    return bad(res, 500, "ADMIN_INCIDENT_REPLY_ERROR");
   }
 });
 
